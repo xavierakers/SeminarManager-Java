@@ -1,12 +1,23 @@
 package com.xakers.seminarmanager.hashtable;
 
+/**
+ * Represents a key-value pair stored in the hash table.
+ *
+ * @param <T> The type of the value associated with the key.
+ */
 public class Record<T> {
-	private int key;
-	private T value;
+	private int key; // Record identifier
+	private T value; // Value with the key
 
+	/**
+	 * Constructs a record with the specified key and value.
+	 * 
+	 * @param key   Identifier for the record.
+	 * @param value Value with the key.
+	 */
 	public Record(int key, T value) {
-		this.key = key;
-		this.value = value;
+		this.key = key; // Unique identifier for the record
+		this.value = value; // Value for the key
 	}
 
 	/**
