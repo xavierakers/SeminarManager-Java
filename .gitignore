@@ -1,0 +1,39 @@
+# Ignore Eclipse project files
+/.settings/
+/.classpath
+/.project
+# Ignore Eclipse build output folders
+/bin/
+/target/
+
+# Ignore compiled Java class files
+*.class
+
+# Ignore log files
+*.log
+
+# Ignore temporary files created by the operating system
+Thumbs.db
+.DS_Store
+
+# Ignore Eclipse IDE's local build files
+*.tmp
+*.bak
+*.swp
+
+# Ignore any files in case you later use Java Maven or Gradle
+/.mvn/
+/.gradle/
+/target/
+
+# Ignore any text-based or project-related settings that are not needed
+*.iml
+
+# Keep only source code (in the src folder)
+!src/
+
+# Keep any necessary documentation (e.g., PDF, txt)
+!P1Sample_input.txt
+P1.pdf
+P1Sample_output.txt
+P1Sample_output2.txt
