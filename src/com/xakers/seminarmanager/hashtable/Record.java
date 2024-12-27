@@ -4,6 +4,10 @@ package com.xakers.seminarmanager.hashtable;
  * Represents a key-value pair stored in the hash table.
  *
  * @param <T> The type of the value associated with the key.
+ * 
+ * @author Xavier Akers
+ * @version 1.0, 2024-12-27
+ * @since 2024-12-26
  */
 public class Record<T> {
 	private int key; // Record identifier

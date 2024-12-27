@@ -1,11 +1,31 @@
 package com.xakers.seminarmanager.memorypool;
 
+/**
+ * Manages a memory pool for efficient allocation and deallocation of memory.
+ * The memory pool is represented as a byte array, with free blocks maintained
+ * in a linked list structure for quick access.
+ * 
+ * @author Xavier Akers
+ * @version 1.0, 2024-12-27
+ * @since 2024-12-26
+ */
+
 public class MemManager {
 
+	/**
+	 * Represents a handle to a memory block within the pool. Contains the starting
+	 * position and size of the allocated memory block.
+	 */
 	public class MemHandle {
-		private int position;
-		private int size;
+		private int position; // Starting position of the memory block
+		private int size; // Size of the memory block
 
+		/**
+		 * Constructs a memory handle with the specified position and size.
+		 * 
+		 * @param position The starting position of the memory block.
+		 * @param size     The size of the memory block.
+		 */
 		public MemHandle(int position, int size) {
 			this.position = position;
 			this.size = size;
@@ -27,10 +47,16 @@ public class MemManager {
 
 	}
 
-	private byte[] pool;
-	private FreeBlock[] freeList;
-	private int poolSize;
+	private byte[] pool; // The memory pool represented as a byte array
+	private FreeBlock[] freeList; // Array of free block lists, indexed by block size
+	private int poolSize; // Total size of the memory pool in bytes
 
+	/**
+	 * Constructs a memory manager with a specified pool size. Initializes the
+	 * memory pool and sets up the free block list.
+	 * 
+	 * @param poolSize The size of the memory pool.
+	 */
 	public MemManager(int poolSize) {
 		this.poolSize = poolSize;
 		this.pool = new byte[poolSize];
@@ -40,11 +66,13 @@ public class MemManager {
 	}
 
 	/**
-	 * Inserts deserialized seminar data into the memory pool
+	 * Inserts serialized data into the memory pool. Finds a suitable free block for
+	 * the data and copies the content into the pool.
 	 * 
-	 * @param space    deserialized seminar data
-	 * @param byteSize the size of the byte array
-	 * @return MemHandle
+	 * @param byteSem  The serialized seminar data as a byte array.
+	 * @param byteSize The size of the byte array.
+	 * @return A handle to the memory block where the data was inserted.
+	 * @throws IllegalStateException If no suitable free block is available.
 	 */
 	public MemHandle insert(byte[] byteSem, int byteSize) {
 		// Check if freeList has space
@@ -263,17 +291,19 @@ public class MemManager {
 	}
 
 	/**
-	 * Double the size of the memPool
+	 * Resizes the memory pool by doubling its size. Allocates new memory pool,
+	 * copies the existing data into the new pool, and updates the free block list
 	 */
 	private void resize() {
-
 		// Double memory pool size
 		this.poolSize *= 2;
 
 		// Allocate new pool of the expanded size
 		byte[] newPool = new byte[this.poolSize];
+
 		// Only copy first half of old pool
 		System.arraycopy(pool, 0, newPool, 0, this.pool.length);
+
 		// Update reference
 		this.pool = newPool;
 
@@ -285,6 +315,7 @@ public class MemManager {
 		// Add the new free block corresponding to the new size
 		FreeBlock newBlock = new FreeBlock(this.poolSize / 2, this.poolSize / 2);
 		int newBlockIndex = freeList.length - 2;
+
 		if (freeList[newBlockIndex] != null) {
 			freeList[freeList.length - 2].setNext(newBlock);
 			newBlock.setPrev(freeList[freeList.length - 2]);
@@ -292,13 +323,18 @@ public class MemManager {
 			freeList[newBlockIndex] = newBlock;
 		}
 
+		// Check if new block can be merged
 		checkBuddies(newBlock);
 
 		System.out.printf("Memory pool expanded to %d bytes%n", this.poolSize);
 	}
 
 	/**
-	 * Merges block buddies
+	 * Merges memory blocks that are "buddies," i.e., they are adjacent in memory If
+	 * merging is successful, the method recursively checks the resulting block's
+	 * buddies.
+	 * 
+	 * @param block The free memory block to check
 	 */
 	private void checkBuddies(FreeBlock block) {
 		int blockIndex = (int) ((Math.log(block.getSize()) / Math.log(2)) - 1);
@@ -308,8 +344,8 @@ public class MemManager {
 		// Check if next block is a buddy
 		if (block.getNext() != null) {
 			FreeBlock next = block.getNext();
-//			if ((block.getPosition() ^ block.getSize()) == next.getPosition()) {
-			if ((block.getPosition() | block.getSize()) == (next.getPosition() | next.getSize())) {
+			// Check if blocks are buddies based on their positions and sizes
+			if ((block.getPosition() ^ block.getSize()) == next.getPosition()) {
 				mergedBlock = new FreeBlock(block.getPosition(), block.getSize() * 2);
 
 				// Update free list pointers
@@ -330,8 +366,7 @@ public class MemManager {
 		// Check if the previous block is a buddy
 		if (mergedBlock == null && block.getPrev() != null) {
 			FreeBlock prev = block.getPrev();
-//			if ((prev.getPosition() ^ prev.getSize()) == block.getPosition()) {
-			if ((block.getPosition() | block.getSize()) == (prev.getPosition() | prev.getSize())) {
+			if ((prev.getPosition() ^ prev.getSize()) == block.getPosition()) {
 				mergedBlock = new FreeBlock(prev.getPosition(), block.getSize() * 2);
 
 				// Update free list pointers
@@ -349,7 +384,8 @@ public class MemManager {
 			}
 		}
 
-		// Add merged block to the next tier and recursively check for buddies
+		// If blocks were merged, add merged block to the next tier and recursively
+		// check for buddies
 		if (mergedBlock != null) {
 			int nextIndex = blockIndex + 1;
 
@@ -359,10 +395,19 @@ public class MemManager {
 			}
 			freeList[nextIndex] = mergedBlock;
 
+			// Recursively check if the merged block can be merged further
 			checkBuddies(mergedBlock);
 		}
 	}
 
+	/**
+	 * Calculates the true block size that should be allocated for the given byte
+	 * size. The block size is rounded up to the nearest power of two
+	 * 
+	 * @param byteSize The requested byte size for allocation.
+	 * @return The true block size, which is the smallest power of two that is
+	 *         greater than or equal to byteSize.
+	 */
 	private int calculateTrueBlockSize(int byteSize) {
 		// Ensure the byte size is a power of two and big enough for the allocation
 		int trueBlockSize = 1;
